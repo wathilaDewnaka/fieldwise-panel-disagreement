@@ -1,0 +1,88 @@
+# train_evaluate.ipynb - the field-level disagreement study: the arms of
+# field_disagreement/triage/ladder.py, as described in the paper's Methods and Appendix.
+# The objective is base.yaml's.
+#
+# COHORT: base.yaml's `extends: cohorts/lidc` or `cohorts/chaksu`.
+# `report_level` trains on that cohort's report-level condition (lidc_report /
+# chaksu_report); `bind` suffixes run_dir with it, so each cohort has its own folder.
+extends: base
+
+report_level: true
+# The study: 9 arms plus the Disp-only ablation (H_disp), seeds 42/43/44, five
+# patient-disjoint folds, one panel weight for every arm (base.yaml lam_def, 0.3),
+# selection floor at epoch 10 (base.yaml defer_warmup).
+# How the paper's runs were produced: the nine arms were trained in one run
+# (paper/predictions: *_report_seed*), in which D_reg and P_emd still had panel
+# weight 1.0; those two arms and the ablation were then retrained at 0.3
+# (*_report_weight03), which the analyses read first. This config trains every
+# arm at 0.3 in one run.
+run_dir: study
+seed: [42, 43, 44]
+# Which epoch every arm keeps (the paper's Methods, model selection). Identical for all
+# nine arms, VALIDATION ONLY - test is never read:
+#   1. the val-AUC parity band: epochs whose smoothed (sel_window) val AUC is
+#      within sel_tol (base.yaml, 0.01) of the arm's best - the diagnosis cannot
+#      be traded away;
+#   2. inside it, the epoch where the arm's OWN shipped disagreement signal
+#      ranks the panel's per-field disagreement best on validation (sel_signal,
+#      smoothed the same way). Every method, prior art included, gets its best
+#      validation epoch; patience also waits while that signal is rising.
+selection: auc_band_signal
+sel_signal: val_rho_fields
+# The sensitivity check, from the SAME training run: each arm is also scored at
+# the last epoch of the band by val AUC alone (weights in band.pt), and the page
+# reports whether the conclusions hold under both rules.
+sel_also: auc_band
+keep_best: true         # keep every arm's selected weights (<model>_<tag>.best.pt, ~95 MB each)
+keep_ckpt: false        # delete the per-epoch training state once a fold finishes
+
+ckpt_every: 40          # save a resume checkpoint every N epochs
+workers: 2
+
+# What this run covers. The study is every arm on `n_folds` folds.
+#   screen_arms: [H_fld]   a subset of the ladder (never an undeclared arm)
+#   probe: true             `probe_fold` alone
+#   smoke: true             2 epochs on fold 0, into its own run_dir
+n_folds: 5
+probe: false
+probe_fold: 0
+# Every study arm plus the ablation H_disp (ladder.ABLATIONS: H_fld without its
+# per-field histograms). null = the nine study arms without the ablation.
+screen_arms: [A_cls, B_kl, C_emd, D_reg, R_rr, U_edl, P_emd, H_fld, H_fldp, H_disp]
+# Finished run folders (names under the runs directory) whose results the
+# results cell reads AFTER this run's: this run's arms replace theirs, the rest
+# are read from them. Empty = this run's folder only.
+compare_runs: []
+smoke: false
+smoke_overrides: {epochs: 2, mc_passes: 5, run_dir: smoke}
+
+# The triage rule every method is compared under (field_disagreement.triage.ServedRule;
+# the paper's triage analysis). Keys left out keep the default rule
+# (certainty cut 4%, SOTA reference 5%, obvious negative p <= 0.10, extreme 8%).
+# The floor check: once fold 0 of every arm is
+# trained, each panel-trained arm's smoothed validation disagreement signal must
+# be at >= `share` of its best at the kept epoch. If not, the run STOPS and names
+# the floor to set (defer_warmup x epochs in base.yaml, never above `max_floor`).
+# on_fail: report prints the failing units and carries on at the declared floor.
+# In the paper's runs two Chákṣu fold-0 units fell short (P_emd seed 42 at 82%,
+# B_kl seed 44 at 86%, whose 90% point at epoch 52 is past max_floor, so no
+# allowed floor fixes it), so the runs used `report`. Leave out to stop the run.
+floor_check:
+  share: 0.90
+  max_floor: 30
+  on_fail: report
+
+served_rule:
+  veto: 0.50          # share of negative calls sent to a reader by the method's signal
+  safety_net: 0.30    # + share of ALL negative calls by the method's predicted opinion spread
+  miss_margin: 5.0    # missed positives per 1000: the non-inferiority margin
+  splits: 1000        # patient-disjoint calibration/evaluation halvings per fold
+
+# ---- Demo figures (read only: drawn from the saved test predictions) ---------- #
+demo:
+  gallery_items: 4                     # panel gallery: items from least to most disputed
+  fold: 0                              # fold whose test cases the case gallery shows
+  n_cases: 3                           # most-disputed test cases shown
+  case_arms: [C_emd, P_emd, H_fld]     # arms beside the panel in the case gallery
+  curve_arms: [A_cls, C_emd, D_reg, P_emd, H_fld, H_fldp]
+  budgets: [0.05, 0.10, 0.20, 0.30, 0.40, 0.50]   # share of cases sent to a reader

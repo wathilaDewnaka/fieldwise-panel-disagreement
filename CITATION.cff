@@ -1,0 +1,39 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Field-level prediction of expert-panel disagreement: code"
+version: 1.0.0
+license: MIT
+authors:
+  - family-names: Karunathilake
+    given-names: Wathila
+    affiliation: University of Westminster
+  - family-names: Poravi
+    given-names: Guhanathan
+    affiliation: University of Westminster
+  - family-names: Aponso
+    given-names: Achala
+    affiliation: "University of Westminster; Curtin University"
+  - family-names: Edirisooriya
+    given-names: Maninda
+    affiliation: University of Westminster
+keywords:
+  - inter-reader variability
+  - expert disagreement
+  - learning to defer
+  - lung nodule
+  - glaucoma
+preferred-citation:
+  type: article
+  title: "Field-level prediction of expert-panel disagreement for review prioritisation in lung-nodule CT and glaucoma fundus images"
+  authors:
+    - family-names: Karunathilake
+      given-names: Wathila
+    - family-names: Poravi
+      given-names: Guhanathan
+    - family-names: Aponso
+      given-names: Achala
+    - family-names: Edirisooriya
+      given-names: Maninda
+  journal: "Computers in Biology and Medicine"
+  year: 2026
+  notes: "Submitted"

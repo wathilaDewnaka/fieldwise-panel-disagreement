@@ -1,0 +1,13 @@
+# LNDb (lung CT, Portugal): the cohort contract. Its role in the study is the
+# EXTERNAL test of the LIDC-trained arms (backend/notebooks/shared/study_external.py),
+# which reads none of this. These values matter only when the arms are TRAINED on
+# LNDb (point base.yaml's `extends:` here).
+dataset: lndb
+folds: configs/folds/folds_lndb.json
+# 80th percentile of LNDb's report-level disagreement, from the panels' labels
+# alone, before any run (the same rule as LIDC's 1.8174 and Chákṣu's 2.3349)
+contested_d: 1.2566
+neutral_rating: 2       # malignancy 3 on 1..5, index 2, as LIDC
+# Same modality, patch and crop as LIDC, so LIDC's calibrated decentring applies
+decentring: 0.20
+shift_seed: 0

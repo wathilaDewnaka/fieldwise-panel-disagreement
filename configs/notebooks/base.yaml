@@ -1,0 +1,125 @@
+# THE PROTOCOL the study's notebook (train_evaluate) runs under: the model, the
+# schedule, and the settings every arm shares. `study.yaml` says
+# `extends: base` and overrides only what the study owns.
+#
+# If it is on a COHORT's measurement scale, it is in that cohort's file - see
+# below. `freeze_folds`, the dataset report and the test suite also read this file.
+
+# =========================================================================== #
+# WHICH COHORT. The one line that selects it, and it names a FILE.
+#
+# `configs/cohorts/<name>.yaml` is a frozen per-cohort contract: the cohort's
+# name, its frozen split, its disagreement threshold (on ITS ruler and nowhere
+# else) and its decentring.
+#
+# Available: cohorts/lidc | cohorts/chaksu
+# (cohorts/lndb is the external test cohort; it is scored, not trained on.)
+#
+# A study can refuse to run on the wrong cohort: put `require_dataset: lidc` in
+# its own yaml and `backend.domains.datasets.bind()` raises if this line points
+# somewhere else.
+extends: cohorts/lidc
+
+# ---- data protocol (frozen: changing these invalidates the frozen split) ----
+split_seed: 42          # the frozen fold split (freeze_folds) and the max_patients
+                        # subset. Independent of the training seed(s) below, so
+                        # listing more seeds can never move a patient between folds.
+n_splits: 5
+
+# ---- training seed(s) ----
+# One seed:      seed: 42
+# Several seeds: seed: [42, 43, 44]
+# The notebook loops over seeds and trains every arm once per seed into the SAME
+# run folder: seed 42 keeps its plain file names (<arm>_fold<k>), any other
+# seed gets <arm>_s<seed>_fold<k>, so finished seeds are reused and a new seed only
+# trains what is missing. The report reads each seed alone and then pools them.
+# `cfg.seeds` is the list, `cfg.seed` the seed being trained
+# (backend/config.py:_normalise_seeds).
+seed: 42
+
+# ---- model ----
+model: resnet50       # resnet50 | cnn | hybrid (the last two: 64x64, from scratch)
+pretrained: true
+
+# ---- optimisation ----
+epochs: 100             # maximum; early stopping on val AUC
+batch: 32
+lr_vit: 1.0e-4          # separate trunk rate, only for a backbone with `param_groups`
+                        # (a plugged-in encoder); resnet50 trains everything at lr_head
+lr_head: 3.0e-4         # ResNet trunk + projection + all heads
+weight_decay: 0.05
+warmup: 5               # linear LR warm-up epochs
+patience: 15            # early stop on val AUC
+loss: bce               # bce (class-weighted) | focal
+focal_alpha: 0.25
+focal_gamma: 2.0
+
+# ---- runtime ----
+workers: 0
+ckpt_every: 1           # epochs between resume checkpoints
+no_amp: false           # mixed precision on CUDA
+max_patients: null      # int = fast local subset (whole patients kept together)
+
+# Subfolder of `runs` (configs/paths.yaml) the study writes to; study.yaml
+# overrides it. `bind()` also suffixes the cohort onto it for every cohort except
+# LIDC, so a switch cannot land on LIDC's cached folds.
+run_dir: scratch
+
+# Append today's date to `run_dir`, so `study` writes to e.g.
+# `runs/study_lidc_report_dc20-24-10-26`. Without it two protocols would land
+# in one folder and `cached_result()` would answer the second run with the first
+# run's numbers.
+#
+# Resume-safe. If a dated folder for the SAME run_dir already exists and has
+# anything in it, backend/domains/datasets.py:bind continues there instead of
+# opening a fresh one, and prints that it did - otherwise a Colab session that
+# died overnight would come back the next morning to an empty folder and throw
+# away every checkpoint. A genuinely new protocol gets a new `run_dir`.
+date_stamp: true
+date_fmt: "%d-%m-%y"    # day-month-year, matching the paper's run folders.
+                        # "%Y-%m-%d" if you would rather they sort by date.
+
+# Feature grid of the ResNet-50: "layer3" = 14x14 (the paper) | "layer4" = 7x7.
+feat_stage: layer3
+
+# Model selection: the val-AUC PARITY band. Among epochs whose smoothed val AUC
+# is within this of the best, the run keeps the LAST one. Epochs inside it count
+# as classifiers of equal quality, so it stays small.
+sel_tol: 0.01
+
+# =========================================================================== #
+# The panel terms, predictive uncertainty, and the triage evaluation
+#
+# Identical across the arms. Each arm sets only its opinion loss and its
+# dispersion target (field_disagreement/triage/ladder.py; the paper's Methods
+# and Appendix) and holds everything below fixed.
+#
+# The contested cut-off `contested_d` is NOT here: it is on the cohort's
+# disagreement scale and lives in configs/cohorts/<name>.yaml.
+# =========================================================================== #
+
+opinion_loss: emd       # kl (categorical) | emd (ordinal) | none - the B-vs-C arm
+lam_op: 1.0             # weight on the opinion objective
+lam_def: 0.3            # weight on every arm's panel term (DUP's regression,
+                        # the per-field histograms, the per-field disagreement):
+                        # ONE value for all arms, not tuned.
+defer_warmup: 0.1       # fraction of training before lam_def reaches full weight;
+                        # also the earliest epoch early stopping may fire AND the
+                        # earliest epoch selection may keep, for EVERY arm.
+
+# The certificate over the auto-decided set (field_disagreement/triage/risk_control.py),
+# calibrated on a patient-disjoint half of TEST. Not the conformal `alpha` below.
+cert_alpha: 0.10        # certified error rate among auto-decided cases
+cert_betas: [0.05, 0.10, 0.15, 0.20, 0.30]   # contested-share constraints swept
+cert_delta: 0.05        # both bounds hold with prob >= 1 - delta (not split)
+
+# CLASS IMBALANCE, corrected exactly once, from each fold's TRAINING split only:
+#   weighted_loss     positives weigh #neg/#pos in the loss (every reported run)
+#   balanced_sampler  batches drawn with equal class odds, loss unweighted
+# Changing it changes training: every arm must be retrained for a fair comparison.
+class_balance: weighted_loss
+mc_passes: 20           # MC-dropout samples for the epistemic term (0 = off)
+target_coverage: 0.8    # fraction of cases the deferral policy should DECIDE.
+                        # Fixed here and calibrated on val, so the test-set defer
+                        # rate is a result rather than something tuned on test.
+alpha: 0.1              # conformal miscoverage; target coverage = 1 - alpha

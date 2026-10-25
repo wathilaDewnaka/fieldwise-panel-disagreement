@@ -1,0 +1,14 @@
+# Training, evaluation and the paper's analyses (Python 3.12).
+# The analyses in paper/analysis were verified with exactly these versions.
+# LIDC-IDRI preprocessing needs a separate Python 3.11 environment: see README.md.
+torch==2.12.1
+torchvision==0.27.1
+numpy==2.4.6
+pandas==3.0.3
+scipy==1.17.1
+PyYAML==6.0.3
+matplotlib==3.10.9
+pillow==12.2.0
+tqdm==4.67.3
+xlrd==2.0.2        # reads the TCIA diagnosis spreadsheet (reference-diagnosis analysis)
+pytest==9.1.1

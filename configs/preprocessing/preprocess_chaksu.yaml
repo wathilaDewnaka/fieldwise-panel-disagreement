@@ -1,0 +1,91 @@
+# Chákṣu contract — the retinal fundus / glaucoma domain. FROZEN once a split is
+# frozen on it: the processed/chaksu/ files and every number measured from them
+# are tied to these values.
+#
+# One sample is one FUNDUS IMAGE: one eye, photographed once, with five experts'
+# optic-disc and optic-cup masks AND five experts' glaucoma decisions. Nothing is
+# extracted — `prepare.py` streams from Train.zip / Test.zip, because the masks
+# are uncompressed TIFF and the 11 GB download expands to 230 GB on disk.
+
+# ----- geometry ------------------------------------------------------------- #
+patch_size: 256         # every crop is resampled to this square grid. Native
+                        # frames are 2448x3264 (Remidio), 2048x1536 (Forus) and
+                        # 1920x1440 (Bosch).
+crop_radii: 3.0         # width of the crop in optic-disc RADII, centred on the
+                        # union of the experts' disc masks (its centroid, and the
+                        # radius of the circle of the same area — some masks carry
+                        # a stray speck that would triple a bbox-derived radius).
+                        # On the FULL frame the
+                        # cup covers 0.73% of the image; a crop of 3 disc radii
+                        # is the standard fundus pipeline. The box is clamped inside the
+                        # frame, so it is always real pixels and never padded.
+                        #
+                        # THE COST, and it must be paid deliberately: uncropped,
+                        # this cohort is naturally decentred (OD centroid a mean
+                        # 0.185 of the frame from the centre). Cropping recreates LIDC's
+                        # centred geometry, so turn `shift_frac` back on for runs
+                        # on this cohort and RE-CALIBRATE it model-free here;
+                        # LIDC's 0.20 is for a 64 px patch and does not transfer.
+
+# No `normalise` knob: these are 8-bit sRGB photographs on one shared scale, so
+# the image is simply divided by 255. Per-image min-max would stretch every
+# image's contrast independently, and colour carries the signal in fundus imaging.
+
+# ----- the panel ------------------------------------------------------------ #
+agreement_structure: cup   # which structure the stored readers' masks A(x,y)
+                           # describe (the experts agree on the disc at Dice 0.95
+                           # and on the cup at 0.82). Training uses the masks only
+                           # to clamp the translation augmentation. The disc is
+                           # still read either way: it defines the crop.
+
+min_experts: 4          # an item's panel is the experts who supplied BOTH masks
+                        # AND a decision, so the agreement surface and the
+                        # opinion distribution come from the same people. 1342 of
+                        # 1345 images have all five; three Train/Forus images
+                        # have four (their expert's CSV row names an image that
+                        # does not exist). Nothing in the cohort has fewer.
+
+# ----- which images are kept ------------------------------------------------ #
+dedupe: true            # seven byte-identical image pairs ship in the Bosch
+                        # subset. They do not cross the official train/test
+                        # boundary, but this repo pools both splits for 5-fold
+                        # CV, which would scatter a pair across folds. The
+                        # earlier id (items are sorted) is the one kept.
+
+min_mask_frac: 0.0      # the union mask must cover MORE than this fraction of
+                        # the patch, so 0.0 drops only an empty union. The
+                        # cohort has none.
+
+splits: [Train, Test]   # the release's own split, one zip each. Both are
+                        # processed and the origin is recorded per item, so a run
+                        # can honour that split or pool it under the project's own
+                        # subject-level CV (which is what freeze_folds does).
+
+max_items: null         # null = all 1345; an int truncates for a quick test
+
+# ----- what this domain can and cannot supervise ---------------------------- #
+# Besides LIDC, the cohort with both a graded agreement surface and a real
+# per-reader opinion distribution over a DECISION. 41.5% of panels are
+# non-unanimous, 14.6% are genuine 2-3 splits, and the readers disagree
+# systematically (mean pairwise kappa 0.369; expert 2 calls glaucoma 3.8x as
+# often as expert 5 while every expert's own glaucoma calls sit 0.12-0.15 higher
+# in VCDR than their normals) — calibration disagreement, which is exactly what
+# the opinion head models.
+#
+# Two limits, stated in the paper. The label is expert OPINION ("glaucoma
+# suspect"), not a verified diagnosis — there is no IOP or visual-field ground
+# truth, and majority vote is the reference standard. And prevalence is 14%, so
+# a 5-fold CV leaves ~38 positives per test fold and the CIs are wider than LIDC's.
+#
+# `disagreement` is the s.d. of five BINARY votes: bounded by 0.5 and taking only
+# {0, 0.400, 0.490}. LIDC's contested_d: 1.0 selects the EMPTY SET here, and no
+# quantile lands near 14% on a three-valued scale (q=0.70 and q=0.80 both give
+# 15.5%, q=0.90 gives 0.2%). So contested_d is set EXPLICITLY on this cohort: 0.35
+# for the 41.5% non-unanimous items, 0.45 for the 14.6% genuine splits.
+# How the crop window is found. `auto`: the optic disc is located from the
+# photograph and the side is `fov_fraction` of the field-of-view diameter, so no
+# expert mask enters the input. `panel`: the historical window, 3 radii of the
+# experts' UNION disc mask - its scale ranks the panel's own disagreement
+# (rho 0.35 per field from the annotations alone), so it is a label leak.
+crop_mode: auto
+fov_fraction: 0.36

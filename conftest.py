@@ -1,0 +1,7 @@
+"""Make the repo root importable so `import field_disagreement` works without an install."""
+import pathlib
+import sys
+
+ROOT = pathlib.Path(__file__).parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))

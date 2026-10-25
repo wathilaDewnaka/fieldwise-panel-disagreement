@@ -1,0 +1,33 @@
+# ==========================================================================  #
+# COHORT CONTRACT - Chákṣu (fundus photographs, 5-expert glaucoma panels)
+#
+# See configs/cohorts/lidc.yaml for what this kind of file is for and
+# why the registry in backend/domains/datasets.py stays authoritative.
+# ==========================================================================  #
+
+dataset: chaksu
+folds: configs/folds/folds_chaksu.json
+
+# ---- disagreement scale -----------------------------------------------------
+# Chákṣu measures disagreement as the s.d. of 5 votes, range 0..0.49. LIDC's 1.0
+# selects NOTHING here, which is the whole reason these values are per-cohort.
+#
+# Stated as an ABSOLUTE, not a quantile, and that is forced: `disagreement` takes
+# only four values on this cohort (0.0 x782, 0.400 x353, 0.490 x202, 0.433 x1),
+# so q=0.70 and q=0.80 both land on 0.400, q=0.90 lands on 0.490 and selects
+# 0.07%, and no quantile gives a ~14% subgroup. 0.45 = the 2-3 and 1-4 splits
+# (15.1%); 0.35 = every non-unanimous panel (41.6%) if the wider cut is wanted.
+contested_d: 0.45
+
+neutral_rating: null    # a binary panel has no middle rating
+
+# ---- decentring -------------------------------------------------------------
+# THE ONE CONTROL - see configs/cohorts/lidc.yaml for what this key is and what
+# reads it. 0.0 turns it off. The crop is centred on the optic disc, so the same
+# translation applies here (clamped to keep the experts' cup masks in frame).
+decentring: 0.20
+shift_seed: 0
+# The samples are cropped with the annotation-free window (`crop_mode: auto` in
+# preprocess_chaksu.yaml), which locates the disc from the photograph alone. Runs on this build get their own folder (`bind` appends this to
+# run_dir), so no result from another crop can be resumed into it.
+data_version: autocrop

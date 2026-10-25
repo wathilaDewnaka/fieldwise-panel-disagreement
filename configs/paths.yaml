@@ -1,0 +1,49 @@
+# Where the data lives. The one config that is machine-specific — edit it after
+# cloning, and expect it to differ between your machine, a lab box and Colab.
+# Relative paths resolve against the repo root; absolute paths point at a dataset
+# that lives outside the repo, which is the normal case for LIDC-IDRI.
+
+# LIDC-IDRI DICOM tree (the folder containing LIDC-IDRI-0001/, ...). The TCIA
+# download nests the images one level below the collection folder, next to
+# metadata/, others/ and xml/ — point at the inner one, not the outer.
+# Only needed to re-run preprocessing; not needed to train from `processed`.
+lidc_raw: data/raw/lidc-idri/lidc-idri
+
+# The release's annotation XML (the folder holding `tcia-lidc-xml/`). This is
+# where READER IDENTITY comes from — pylidc's database does not record which of
+# the four radiologists drew a contour, so without this the panel size is a count
+# of contours rather than of people. Optional: defaults to `xml/` beside
+# `lidc_raw`, which is where the TCIA download puts it.
+lidc_xml: data/raw/lidc-idri/xml
+
+# Output of `python -m backend.domains.lidc.prepare` — one .npz per nodule.
+# One folder per DATASET under `processed/`, named after it, so a second cohort
+# lands beside this one instead of overwriting it.
+processed: data/processed/lidc-idri
+
+# Chákṣu fundus database: the folder holding `Train.zip` and `Test.zip`. The
+# preprocessor STREAMS from those zips and never extracts them — the masks are
+# uncompressed TIFF, so the 11 GB download becomes 230 GB on disk. Optional.
+chaksu_raw: data/raw/chaksu
+
+# Output of `python -m backend.domains.chaksu.prepare` — one .npz per image.
+chaksu_processed: data/processed/chaksu
+
+# The report-level cohorts the study trains on, and the two inputs they are built from
+# (python -m backend.domains.chaksu.vcdr_opinion, then backend.domains.report_condition).
+chaksu_vcdr_processed: data/processed/chaksu_vcdr
+lidc_multi_processed: data/processed/lidc_multi
+lidc_report_processed: data/processed/lidc_report
+chaksu_report_processed: data/processed/chaksu_report
+
+# Checkpoints and run logs. Gitignored (data/ is), so it can be repo-relative.
+runs: data/runs
+
+# LNDb (the external test cohort): the folder holding data0-5.rar, masks.rar and the
+# release CSVs. The preprocessor pulls one CT at a time out of the archives with
+# 7-Zip and deletes it after cropping; nothing is extracted wholesale. Optional.
+lndb_raw: data/raw/lndb
+# Output of `python -m backend.domains.lndb.prepare` - one .npz per nodule, in the
+# lidc_report format. CC BY-NC-ND: do not redistribute (keep any upload private).
+lndb_report_processed: data/processed/lndb_report
+

@@ -1,0 +1,50 @@
+# ==========================================================================  #
+# COHORT CONTRACT - LIDC-IDRI (lung-nodule CT, 4-radiologist panels)
+#
+# One file per cohort, each naming the cohort ONCE and carrying the values that
+# are on THAT cohort's measurement scale. `configs/notebooks/base.yaml` extends
+# exactly one of them, so a run's cohort is the name of a frozen file rather than
+# a word buried in the protocol, and the values that have to move with it cannot
+# be left behind on another cohort's ruler.
+#
+# The registry in `backend/domains/datasets.py` is still AUTHORITATIVE: `bind()`
+# overwrites `folds` and `contested_d` from `DatasetSpec` and
+# PRINTS that it did. The values below are stated so the yaml is readable and so
+# a mismatch between the two is visible; they are not a second source of truth.
+#
+# THE PAPER'S COHORT: 1,377 nodules, 693 patients, built with
+# `python -m backend.domains.lidc.prepare --paper-cohort` (see README.md).
+# ==========================================================================  #
+
+dataset: lidc
+
+# The permanent split (seed and n_splits are recorded inside it). `bind()`
+# replaces this with the registry's path for `dataset:` above, so the two must
+# agree - they are written out here so that agreement is checkable by eye.
+folds: configs/folds/folds_lidc.json
+
+# ---- disagreement scale -----------------------------------------------------
+# The line between an agreed and a contested case, on THIS cohort's ruler.
+# LIDC measures disagreement as the s.d. of the 4 malignancy ratings, range
+# 0..2.0, and 1.0 selects the 14.3% most contested nodules.
+#
+# Why this cannot live in base.yaml: 1.0 selects the EMPTY SET on Chákṣu's
+# 0..0.49 scale, and an empty contested subgroup is reported downstream as "no
+# effect" rather than as a configuration error.
+contested_d: 1.0
+
+neutral_rating: 2       # the rating that takes no side (3 on 1..5, index 2)
+
+# ---- decentring -------------------------------------------------------------
+# THE ONE CONTROL. `decentring` is both the switch and the value: `bind()` reads
+# it from THIS file for whichever cohort is bound and sets the loader's
+# `shift_frac` from it. 0.0 turns it off.
+#
+# The preprocessor centres every patch on the lesion. Training images are
+# translated by a random offset of up to `decentring` x the patch width (clamped
+# so the readers' masks stay in the frame); validation and test images get one
+# fixed offset per image (hashed from the file name and `shift_seed`), so every
+# arm sees identical inputs. A run with `decentring > 0` is stamped `_dc20` in
+# its output folder, so it can never land on top of a run in the other condition.
+decentring: 0.20
+shift_seed: 0

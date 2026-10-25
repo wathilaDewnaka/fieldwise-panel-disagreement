@@ -1,0 +1,79 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "field_disagreement"
+version = "1.0.0"
+description = "Field-level prediction of expert-panel disagreement for review prioritisation (lung-nodule CT, glaucoma fundus images)"
+# Installing the package (`pip install -e ".[lidc]"`) is needed only for LIDC-IDRI
+# preprocessing, and that needs Python 3.11: pylidc 0.2.3, the last release (2020),
+# calls `configparser.SafeConfigParser`, deleted in Python 3.12, and `np.int`,
+# deleted in NumPy 1.24. Training and the paper's analyses run from the repository
+# root without installing, on Python 3.12 with requirements.txt (see README.md).
+requires-python = ">=3.10,<3.12"
+license = { text = "MIT" }
+authors = [{ name = "Wathila Karunathilake" }, { name = "Guhanathan Poravi" },
+           { name = "Achala Aponso" }, { name = "Maninda Edirisooriya" }]
+keywords = ["inter-reader-variability", "expert-disagreement", "learning-to-defer",
+            "medical-imaging", "lung-nodule", "glaucoma"]
+
+# The upper bounds are pylidc's, not ours: `np.int` was deleted in NumPy 1.24,
+# and pandas must stay on a line built against NumPy 1.x. Everything else is
+# free to move.
+dependencies = [
+    "torch>=2.0",
+    "torchvision>=0.15",
+    "numpy>=1.23,<1.24",
+    "pandas>=1.5,<2.1",
+    "pyyaml>=6.0",         # backend/config.py reads configs/*.yaml
+]
+
+[project.optional-dependencies]
+# LIDC-IDRI preprocessing and the report figures. Separate only because the
+# framework itself never touches a DICOM — same environment, same Python.
+lidc = [
+    "pylidc==0.2.3",
+    "SQLAlchemy>=1.4,<2.0",   # pylidc uses the legacy query API, gone in 2.0
+    "tqdm>=4.64",
+    "matplotlib>=3.7",
+]
+# Chákṣu and LNDb preprocessing (`backend.domains.chaksu`, `backend.domains.lndb`).
+# Pillow decodes the fundus photographs and masks straight out of the release
+# zips; SciPy locates the optic disc and computes the rank statistics.
+chaksu = [
+    "pillow>=9.0",
+    "scipy>=1.9",
+    "tqdm>=4.64",
+]
+dev = ["pytest>=7", "ruff>=0.4"]
+
+[tool.setuptools]
+# Only the package is installed; backend/, configs/, paper/ and data/ are run from
+# the repository root.
+packages = [
+    "field_disagreement",
+    "field_disagreement.engine",
+    "field_disagreement.triage",
+    "field_disagreement.backbones",
+    "field_disagreement.metrics",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+# pylidc 0.2.3 is unmaintained: it calls np.int, the legacy SQLAlchemy API and a
+# moved scipy namespace, and emits thousands of deprecation warnings per run.
+# Silenced BY MODULE so our own deprecations still surface.
+filterwarnings = [
+    "ignore:.*`np.int` is a deprecated alias.*:DeprecationWarning",
+    "ignore:.*`np.bool` is a deprecated alias.*:DeprecationWarning",
+    "ignore:.*`np.float` is a deprecated alias.*:DeprecationWarning",
+    "ignore:.*`np.object` is a deprecated alias.*:DeprecationWarning",
+    "ignore:.*declarative_base.*:DeprecationWarning",
+    "ignore:.*pkg_resources is deprecated.*:DeprecationWarning",
+    "ignore:.*scipy.ndimage.morphology.*:DeprecationWarning",
+]
+
+[tool.ruff]
+line-length = 100
+exclude = [".venv", "data"]

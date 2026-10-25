@@ -1,0 +1,21 @@
+# LIDC-IDRI 2.5D preprocessing contract. FROZEN for the ablation phase — the
+# processed/<dataset>/ files and every reported number are tied to these values, so a
+# change here invalidates the frozen folds and the dataset validation report.
+# Re-run `prepare`, `freeze_folds` and `validate` together if you change it.
+
+patch_size: 64          # H, W of each 2D slice, in pixels
+neighbours: 1           # adjacent axial slices each side of centre -> 2n+1 channels
+hu_min: -1000           # lung window, lower bound (HU)
+hu_max: 400             # lung window, upper bound (HU)
+consensus_level: 0.5    # clevel passed to pylidc consensus()
+min_readers: 3          # keep nodules marked by >= this many DISTINCT radiologists
+max_patients: null      # null = every scan; an int truncates for a quick test
+
+# Cluster integrity. pylidc groups contours into nodules by proximity and can put
+# two contours from ONE reader into one cluster, or two nearby lesions into one.
+# A reader whose own two contours sit further apart than their own size annotated
+# two lesions; when >= merge_min_split_readers readers independently do that, the
+# cluster is two lesions and is excluded. Below that it is a duplicate contour and
+# is resolved to one vote per reader. See backend/domains/lidc/readers.py.
+separation_ratio: 1.0       # own-contour distance / mean diameter that counts as "split"
+merge_min_split_readers: 2  # split readers needed to call it a merged nodule
