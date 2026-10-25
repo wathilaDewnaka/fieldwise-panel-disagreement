@@ -27,8 +27,8 @@ it was written against. So a caller passes any object with
 `train_step` and `evaluate` are overridable because a study that adds a term of
 its own is a real thing this project does: replacing the step is how a
 contribution stays readable in the notebook that argues for it. Everything else
-follows from the config, which is the point - an arm is a
-`with_contributions(...)` and nothing else. Subclass to change the rest.
+follows from the config, which is the point - an arm differs from the base
+only in its config. Subclass to change the rest.
 """
 from __future__ import annotations
 

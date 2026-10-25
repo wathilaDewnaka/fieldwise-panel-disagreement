@@ -3,19 +3,24 @@ message: "If you use this software, please cite it as below."
 title: "Field-level prediction of expert-panel disagreement: code"
 version: 1.0.0
 license: MIT
+doi: 10.5281/zenodo.23637205
+repository-code: "https://github.com/wathilaDewnaka/fieldwise-panel-disagreement"
 authors:
   - family-names: Karunathilake
     given-names: Wathila
     affiliation: University of Westminster
+    orcid: "https://orcid.org/0009-0000-3476-6053"
   - family-names: Poravi
     given-names: Guhanathan
     affiliation: University of Westminster
   - family-names: Aponso
     given-names: Achala
     affiliation: "University of Westminster; Curtin University"
+    orcid: "https://orcid.org/0000-0002-7256-365X"
   - family-names: Edirisooriya
     given-names: Maninda
     affiliation: University of Westminster
+    orcid: "https://orcid.org/0009-0007-0340-8940"
 keywords:
   - inter-reader variability
   - expert disagreement

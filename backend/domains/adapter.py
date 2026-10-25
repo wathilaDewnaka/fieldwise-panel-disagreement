@@ -3,8 +3,7 @@
 The ONE loader for every cohort — LIDC-IDRI, Chákṣu and LNDb read through this
 file. It is not part of `field_disagreement/` because it hard-codes a storage
 format (a flat directory of .npz files with fixed key names, two of them LIDC's
-own vocabulary); `field_disagreement.spectrum.AgreementDataset` is the
-format-neutral contract, and this class is one concrete implementation of it.
+own vocabulary).
 
 Each item is a dict:
 

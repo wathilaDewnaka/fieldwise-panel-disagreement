@@ -38,7 +38,7 @@ n_splits: 5
 seed: 42
 
 # ---- model ----
-model: resnet50       # resnet50 | cnn | hybrid (the last two: 64x64, from scratch)
+model: resnet50       # resnet50 | cnn (cnn: 64x64, from scratch; used by the tests)
 pretrained: true
 
 # ---- optimisation ----

@@ -70,9 +70,9 @@ for c, coh in enumerate(("LIDC", "Chaksu")):
     img = z["image"]
     ax = fig.add_subplot(gs[c, 0])
     if coh == "LIDC":
-        ax.imshow(img[1], cmap="gray", vmin=0, vmax=1)
+        ax.imshow(img[1], cmap="gray", vmin=0, vmax=1, interpolation="nearest")
     else:
-        ax.imshow(np.clip(np.transpose(img, (1, 2, 0)), 0, 1))
+        ax.imshow(np.clip(np.transpose(img, (1, 2, 0)), 0, 1), interpolation="nearest")
     ax.set_xticks([]); ax.set_yticks([])
     for s in ax.spines.values():
         s.set_visible(False)
@@ -100,4 +100,6 @@ for c, coh in enumerate(("LIDC", "Chaksu")):
 h_, l_ = ax.get_legend_handles_labels()
 fig.legend(h_, l_, frameon=False, loc="lower center", ncol=2, fontsize=8)
 fig.subplots_adjust(left=0.03, right=0.95, top=0.95, bottom=0.13)
-fig.savefig(HERE / "fig_cases.pdf")
+# 600 dpi with nearest-neighbour display: every stored pixel is kept as it is (no
+# smoothing), at well above the 300 dpi the journal asks for in photographs.
+fig.savefig(HERE / "fig_cases.pdf", dpi=600)

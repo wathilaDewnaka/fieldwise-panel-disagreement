@@ -1,5 +1,7 @@
 # Field-level prediction of expert-panel disagreement
 
+[![DOI](https://zenodo.org/badge/1432964297.svg)](https://doi.org/10.5281/zenodo.23637205)
+
 Code for the paper
 
 > W. Karunathilake, G. Poravi, A. Aponso, M. Edirisooriya.
@@ -152,7 +154,8 @@ python -m pytest
 
 ## Citation
 
-If you use this code, please cite the paper (see `CITATION.cff`).
+If you use this code, please cite the paper (see `CITATION.cff`). The code is archived on
+Zenodo: https://doi.org/10.5281/zenodo.23637205 (all versions).
 
 ## Licence
 

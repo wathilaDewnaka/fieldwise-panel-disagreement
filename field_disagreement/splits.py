@@ -262,8 +262,8 @@ def fold_summary(df: pd.DataFrame, patient_fold: dict[str, int],
                  n_splits: int = 5) -> pd.DataFrame:
     """Per-fold subject / negative / positive / ambiguous counts (sanity table).
 
-    The legacy column names ride along so the existing report tables keep
-    resolving; they are the same numbers under their single-cohort names."""
+    Some columns appear twice, under a generic and a cohort-specific name;
+    they hold the same numbers."""
     subj = subjects(df)
     fold_of = subj.map(patient_fold)
     rows = []

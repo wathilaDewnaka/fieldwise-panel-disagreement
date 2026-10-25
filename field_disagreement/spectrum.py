@@ -111,7 +111,7 @@ def rating_entropy(dist) -> float:
 
 def rating_spread(values) -> float:
     """s.d. of the panel's ratings — the spread for a domain that HAS a rating
-    scale. Unbounded above, unlike `mask_disagreement`."""
+    scale. Unbounded above."""
     return float(np.std(np.asarray(values, dtype=np.float64)))
 
 
